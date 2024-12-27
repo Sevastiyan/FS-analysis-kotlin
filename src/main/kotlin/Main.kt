@@ -6,6 +6,12 @@ import org.example.ButterLowpassFilter
 import org.example.PeakDetector
 import kotlin.math.cos
 import kotlin.math.sin
+import jetbrains.letsPlot.export.ggsave
+import jetbrains.letsPlot.geom.geomLine
+import jetbrains.letsPlot.geom.geomPoint
+import jetbrains.letsPlot.letsPlot
+import jetbrains.letsPlot.label.ggtitle
+
 
 
 fun main() {
@@ -88,31 +94,58 @@ fun main() {
 
 
     /* ----------------------------- Filter COP data ---------------------------- */
-    val filteredLeftY = ButterLowpassFilter.filter(
-        leftCopY, // We use only Y axis data
-        cutoff = 2.5,
-        fs = 100.0,
-        order = 2
-    )
+//    val filteredLeftY = ButterLowpassFilter.filter(
+//        leftCopY, // We use only Y axis data
+//        cutoff = 2.5,
+//        fs = 100.0,
+//        order = 2
+//    )
 
     /* -------------------------------------------------------------------------- */
     /*                                 Find Peaks                                 */
     /* -------------------------------------------------------------------------- */
     val (positivePeaks, negativePeaks) = PeakDetector.findPeaks(
-        filteredLeftY,
+        leftCopY,
         prominence = 0.1, // Adjust based on your signal
         distance = 1     // Minimum samples between peaks
     )
 
+
+    /* ---------------------------------- Plot ---------------------------------- */
+    val data = mapOf(
+        "sample" to (0 until sampleCount).toList(),
+        "yCoord" to leftCopY.toList()
+    )
+
+    val positivePeakData = mapOf(
+        "sample" to positivePeaks,
+        "yCoord" to positivePeaks.map { leftCopY[it] }
+    )
+
+    val negativePeakData = mapOf(
+        "sample" to negativePeaks,
+        "yCoord" to negativePeaks.map { leftCopY[it] }
+    )
+
+    val plot = letsPlot(data) +
+        geomLine(color = "blue") { x = "sample"; y = "yCoord" } +
+        geomPoint(data = positivePeakData, color = "green", size = 3.0) { x = "sample"; y = "yCoord" } +
+        geomPoint(data = negativePeakData, color = "red", size = 3.0) { x = "sample"; y = "yCoord" } +
+        ggtitle("Left Foot COP Y-Trajectory")
+
+    // Save plot to file
+    ggsave(plot, "cop_plot.png")
+    /* ------------------------------------ x ----------------------------------- */
+
     println("these are the positive peaks, $positivePeaks")
 
     positivePeaks.forEachIndexed { index, value ->
-        println("Positive peak $index at sample $value: ${"%.2f".format(filteredLeftY[value])}")
+        println("Positive peak $index at sample $value: ${"%.2f".format(leftCopY[value])}")
     }
 
     println("these are the negative peaks, $negativePeaks")
     negativePeaks.forEachIndexed {inde, value ->
-        println("Negative peak $inde at sample $value: ${"%.2f".format(filteredLeftY[value])}")
+        println("Negative peak $inde at sample $value: ${"%.2f".format(leftCopY[value])}")
     }
 
 }
